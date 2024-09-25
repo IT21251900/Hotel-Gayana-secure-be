@@ -24,6 +24,11 @@ const {
 const publicKey = path.join(__dirname, '../config/public.pem');
 const shield = new Shield(publicKey);
 
+const { loginLimiter, passwordResetLimiter, generalLimiter} = require('../middleware/rateLimiter');
+
+// Apply the generalLimiter to all routes in this router
+router.use(generalLimiter);
+
 const userAuthRouter = Router();
 //Ushan 
 const { getCategory, saveCategory, deleteCategory, updateCategory, getCategoryById } = require("../controllers/CategoryControllers")
@@ -156,15 +161,15 @@ router.put("/Employee/update/:id",updateEmployee)
 router.delete("/Employee/delete/:id",deleteEmployee)
 
 // Login, Logout & Token Refresh Routes
-router.post('/login', userLoginController);
-router.post('/refresh-token', userRefreshTokenController);
+router.post('/login', loginLimiter, userLoginController);
+router.post('/refresh-token', generalLimiter, userRefreshTokenController);
 router.post('/logout', shield.auth(null, process.env.ADMIN_ROLE), logoutUserController);
 
 // Password Management Routes
 router.get('/admin-reset-password/:id', shield.auth(null, process.env.ADMIN_ROLE), resetUserPasswordController);
-router.post('/request-reset-password', requestUserPWResetController);
-router.post('/validate-reset-password', validateUserPWResetTokenController);
-router.post('/reset-password', updateUserPasswordController);
+router.post('/request-reset-password', passwordResetLimiter, requestUserPWResetController);
+router.post('/validate-reset-password', passwordResetLimiter, validateUserPWResetTokenController);
+router.post('/reset-password', passwordResetLimiter, updateUserPasswordController);
 
 // Admin Management Routes
 router.post('/create', createUserController);
